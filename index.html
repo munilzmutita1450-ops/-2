@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สถิติ: ค่ากลางและพิสัยของข้อมูล</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+:root{--bg:#f4f7fb;--card:#fff;--ink:#1e2a3a;--mut:#5d6b7e;--pri:#2f6fed;--mean:#e8590c;--med:#12a150;--mode:#9c36b5;--rng:#0b7285;--line:#d9e1ec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;line-height:1.6}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+header{background:linear-gradient(135deg,#2f6fed,#6a4cf0);color:#fff;border-radius:16px;padding:20px 24px;margin-bottom:16px}
+header h1{margin:0 0 4px;font-size:1.6rem}header p{margin:0;opacity:.92}
+.card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(30,42,58,.07)}
+h2{margin:0 0 10px;font-size:1.2rem}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.ctl{margin:6px 0}
+.ctl label{font-weight:600}
+input[type=range]{width:100%;accent-color:var(--pri)}
+.vals{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px;margin-top:8px}
+.vals div{font-size:.9rem;background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+button{font-family:inherit;font-size:1rem;border:0;border-radius:8px;padding:8px 14px;background:var(--pri);color:#fff;cursor:pointer;font-weight:600}
+button.sec{background:#e9eef7;color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.stat{border-radius:12px;padding:12px;border:2px solid;background:#fff}
+.stat b{display:block;font-size:1.7rem}.stat small{color:var(--mut)}
+.s-mean{border-color:var(--mean)}.s-mean b{color:var(--mean)}
+.s-med{border-color:var(--med)}.s-med b{color:var(--med)}
+.s-mode{border-color:var(--mode)}.s-mode b{color:var(--mode)}
+.s-rng{border-color:var(--rng)}.s-rng b{color:var(--rng)}
+.stat em{display:block;font-style:normal;font-size:.8rem;color:var(--mut);margin-top:2px}
+
+.steps{margin-top:10px;font-size:.95rem;background:#f7f9fc;border-radius:10px;padding:10px 14px}
+svg{width:100%;height:auto;display:block}
+.dot{fill:var(--pri);animation:drop .5s ease-out both;transition:fill .3s}
+.dot.mode{fill:var(--mode)}
+@keyframes drop{from{transform:translateY(-60px);opacity:0}to{transform:none;opacity:1}}
+.mk{transition:transform .5s cubic-bezier(.3,1.3,.5,1)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem;color:var(--mut)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+table.stem{border-collapse:collapse;font-size:1.15rem;font-family:'Courier New',monospace}
+table.stem td{padding:3px 10px}
+table.stem td.s{text-align:right;border-right:3px solid var(--ink);font-weight:700}
+table.stem td.l span{display:inline-block;margin-right:8px;animation:pop .4s both}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.q{border-top:1px dashed var(--line);padding-top:12px;margin-top:12px}
+.q label{display:block;padding:4px 0;cursor:pointer}
+.fb{margin-top:6px;padding:8px 12px;border-radius:8px;display:none}
+.fb.ok{display:block;background:#e3f6ea;color:#0b6b35}.fb.no{display:block;background:#fdeaea;color:#a12626}.fb.ans{display:block;background:#eef3ff;color:#1f4fb5}
+#score{font-weight:700;font-size:1.1rem;margin-top:12px}
+
+.qt{white-space:pre-wrap}
+.eq{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:#fafcff}
+.eq label.h{display:block;font-weight:600;margin:8px 0 4px}
+textarea.f,input[type=text].f{width:100%;font-family:inherit;font-size:1rem;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.opt{display:flex;align-items:center;gap:8px;margin:4px 0}.opt span{font-weight:600}
+.opt input[type=radio]{accent-color:var(--med);width:18px;height:18px}
+.row.sp{justify-content:space-between}
+.note{color:var(--mut);font-size:.9rem;margin:6px 0}
+
+.vals{max-height:280px;overflow:auto;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.vals div{display:flex;align-items:center;gap:6px}
+.vals input.nb{width:66px;padding:2px 4px;font-family:inherit}
+.vals input.rg{width:auto;flex:1;min-width:60px}
+canvas.c3{width:100%;height:390px;display:block;touch-action:none;cursor:grab;background:linear-gradient(#f9fbff,#e8eef9);border-radius:12px}
+canvas.c3:active{cursor:grabbing}
+.tools{gap:6px;margin-bottom:8px}.tools button{padding:5px 10px;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>📊 สถิติ: ค่ากลางและพิสัยของข้อมูล</h1><p>ค่าเฉลี่ย • มัธยฐาน • ฐานนิยม • พิสัย • แผนภาพจุด • แผนภาพต้นไม้</p></header>
+
+<div class="card">
+<h2>1) ปรับข้อมูลของตัวเอง (ไม่จำกัดจำนวนและค่า)</h2>
+<div class="row">
+<div class="ctl" style="flex:1;min-width:250px"><label>จำนวนข้อมูล: <input type="number" id="nn" min="1" value="8" style="width:100px;font-family:inherit;padding:2px 4px"> ค่า</label>
+<input type="range" id="n" min="1" max="30" value="8"></div>
+<div class="ctl"><label>ช่วงสูงสุดของแถบเลื่อน: <input type="number" id="rmax" min="1" value="60" style="width:100px;font-family:inherit;padding:2px 4px"></label></div>
+</div>
+<div class="vals" id="vals"></div>
+<p style="margin:6px 0;color:var(--mut);font-size:.9rem">ลากแถบเลื่อน หรือพิมพ์ตัวเลขในช่องได้เลย (จำนวนเต็ม ≥ 0 ไม่จำกัดค่าสูงสุด) ถ้ากรอกจำนวนข้อมูลมากๆ เครื่องอาจแสดงผลช้าลง</p>
+<div class="row"><button id="rnd">🎲 สุ่มข้อมูลใหม่</button><button class="sec" id="srt">เรียงข้อมูล</button></div>
+<label style="font-weight:600;display:block;margin-top:10px">หรือวางข้อมูลทั้งชุด (คั่นด้วยจุลภาคหรือเว้นวรรค)</label>
+<textarea id="paste" rows="2" style="width:100%;font-family:inherit;font-size:1rem;padding:6px 8px;border:1px solid var(--line);border-radius:8px" placeholder="เช่น 12 25 18 25 31 9 25 40 120 305"></textarea>
+<button class="sec" id="usep" style="margin-top:6px">ใช้ข้อมูลนี้</button>
+</div>
+
+<div class="card">
+<h2>2) ค่ากลางและพิสัยของข้อมูล</h2>
+<div class="stats">
+<div class="stat s-mean"><small>ค่าเฉลี่ย (Mean)</small><b id="mean">-</b></div>
+<div class="stat s-med"><small>มัธยฐาน (Median)</small><b id="med">-</b></div>
+<div class="stat s-mode"><small>ฐานนิยม (Mode)</small><b id="mode">-</b></div>
+<div class="stat s-rng"><small>พิสัย (Range)</small><b id="rng">-</b><em id="rngsub"></em></div>
+</div>
+<div class="steps" id="steps"></div>
+</div>
+
+<div class="card">
+<h2>3) แผนภาพจุด 3 มิติ (3D Dot Plot)</h2>
+<canvas id="dp" class="c3"></canvas>
+<p style="margin:8px 0 0;color:var(--mut);font-size:.9rem">ลากเพื่อหมุน • เลื่อนล้อเมาส์เพื่อซูม • ค่าที่ซ้ำกันจะกองซ้อนขึ้นเป็นชั้นๆ</p>
+<div class="legend"><span><i style="background:var(--pri)"></i>ข้อมูล</span><span><i style="background:var(--mode)"></i>ฐานนิยม</span><span><i style="background:var(--mean);border-radius:2px"></i>แผ่นสีส้ม = ค่าเฉลี่ย</span><span><i style="background:var(--med);border-radius:2px"></i>แผ่นสีเขียว = มัธยฐาน</span><span><i style="background:var(--rng);border-radius:2px"></i>เส้นสีเขียวน้ำเงิน = พิสัย (ต่ำสุด–สูงสุด)</span></div>
+</div>
+
+<div class="card">
+<h2>4) แผนภาพต้นไม้ 3 มิติ (3D Stem-and-Leaf)</h2>
+<p style="margin:0 0 8px;color:var(--mut)">ต้น (ก้อนสีน้ำเงินเข้ม) = หลักสิบขึ้นไป, ใบ (ก้อนสีฟ้า) = หลักหน่วย เรียงจากน้อยไปมาก ใบสีม่วงคือฐานนิยม กดปุ่ม "หน้าตรง" เพื่ออ่านค่าแบบปกติ</p>
+<canvas id="st" class="c3"></canvas>
+<p id="key" style="color:var(--mut);margin:8px 0 0"></p>
+</div>
+
+<div class="card">
+<h2>5) ตรวจสอบความเข้าใจ (<span id="qn">3</span> ข้อ)</h2>
+<div class="row sp"><span class="note">ครู/ผู้เรียนสามารถแก้ไขโจทย์ได้เอง ระบบจะบันทึกไว้ในเบราว์เซอร์เครื่องนี้</span><button class="sec" id="edt">✏️ แก้ไขข้อสอบ</button></div>
+<div id="quizView">
+<div id="quiz"></div>
+<button id="chk" style="margin-top:12px">ตรวจคำตอบ</button>
+<button class="sec" id="rev" style="margin-top:12px">ดูเฉลยทั้งหมด</button>
+<div id="score"></div>
+</div>
+<div id="quizEdit" style="display:none"></div>
+<input type="file" id="imp" accept=".json,application/json" style="display:none">
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let vals=[12,25,18,25,31,9,25,40];
+const fmt=x=>Number.isInteger(x)?x:(+x.toFixed(2)).toString();
+
+function calc(){
+  const s=[...vals].sort((a,b)=>a-b),n=s.length,sum=s.reduce((a,b)=>a+b,0),mean=sum/n;
+  const med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;
+  const f=new Map();s.forEach(v=>f.set(v,(f.get(v)||0)+1));
+  let mx=0;f.forEach(c=>{if(c>mx)mx=c;});
+  const modes=mx===1?[]:[...f].filter(e=>e[1]===mx).map(e=>e[0]);
+  const rng=s[n-1]-s[0];
+  return{s,n,sum,mean,med,modes,ms:new Set(modes),mx,rng};
+}
+const lim=(a,k=10)=>a.length>k?a.slice(0,k).join(', ')+' … (รวม '+a.length+' ค่า)':a.join(', ');
+
+/* ---------- เครื่องมือแสดงผล 3 มิติ (Canvas) ---------- */
+const BLU=[47,111,237],PUR=[156,54,181],ORG=[232,89,12],GRN=[18,161,80],NAVY=[34,52,92],GRY=[130,140,155];
+const rgb=(c,f=1,a=1)=>`rgba(${c.map(v=>Math.min(255,v*f|0)).join()},${a})`;
+const FACES=[[[0,0,1],[[-1,1,1],[1,1,1],[1,-1,1],[-1,-1,1]]],[[0,0,-1],[[1,1,-1],[-1,1,-1],[-1,-1,-1],[1,-1,-1]]],[[1,0,0],[[1,1,1],[1,1,-1],[1,-1,-1],[1,-1,1]]],[[-1,0,0],[[-1,1,-1],[-1,1,1],[-1,-1,1],[-1,-1,-1]]],[[0,1,0],[[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1]]],[[0,-1,0],[[-1,-1,1],[1,-1,1],[1,-1,-1],[-1,-1,-1]]]];
+class Scene{
+  constructor(cv,y,p){
+    Object.assign(this,{cv,g:cv.getContext('2d'),y0:y,p0:p,yaw:y,pit:p,zm:1,auto:false,m:null,t0:-1e9,raf:0,cur:{},d:null});
+    cv.onpointerdown=e=>{this.d=[e.clientX,e.clientY,this.yaw,this.pit];cv.setPointerCapture(e.pointerId);};
+    cv.onpointermove=e=>{if(!this.d)return;this.yaw=this.d[2]+(e.clientX-this.d[0])*.01;this.pit=Math.max(-1.5,Math.min(1.5,this.d[3]+(e.clientY-this.d[1])*.01));this.go();};
+    cv.onpointerup=cv.onpointercancel=()=>{this.d=null;};
+    cv.onwheel=e=>{e.preventDefault();this.zm=Math.max(.2,Math.min(8,this.zm*(e.deltaY<0?1.1:.91)));this.go();};
+    new ResizeObserver(()=>this.go()).observe(cv);
+  }
+  set(m,anim){this.m=m;if(anim)this.t0=performance.now();this.go();}
+  go(){if(!this.raf)this.raf=requestAnimationFrame(t=>{this.raf=0;this.draw(t);});}
+  draw(now){
+    const{cv,g,m}=this;if(!m)return;
+    const w=cv.clientWidth,h=cv.clientHeight,dp=window.devicePixelRatio||1;
+    if(cv.width!==Math.round(w*dp)||cv.height!==Math.round(h*dp)){cv.width=Math.round(w*dp);cv.height=Math.round(h*dp);}
+    g.setTransform(dp,0,0,dp,0,0);g.clearRect(0,0,w,h);
+    if(this.auto)this.yaw+=.01;
+    const el=now-this.t0;let busy=this.auto||el<m.dur;
+    const cy=Math.cos(this.yaw),sy=Math.sin(this.yaw),cp=Math.cos(this.pit),sp=Math.sin(this.pit);
+    const rot=(x,y,z)=>{const a=x*cy+z*sy,b=-x*sy+z*cy;return[a,y*cp-b*sp,y*sp+b*cp];};
+    const D=4*Math.max(m.hw,m.hh),sc=.9*Math.min(w/(2*m.hw),h/(2*m.hh))*this.zm,C=m.c;
+    const P=(x,y,z)=>{const q=rot(x-C[0],y-C[1],z-C[2]),k=D/(D-q[2]);return[w/2+q[0]*k*sc,h/2-q[1]*k*sc,q[2],k];};
+    // พื้นและเส้นช่วย
+    m.fq.forEach(([pts,col])=>{g.beginPath();pts.forEach((v,i)=>{const q=P(...v);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]);});g.closePath();g.fillStyle=col;g.fill();});
+    g.strokeStyle='#b9c6dc';g.lineWidth=1;
+    m.ln.forEach(([a,b])=>{const A=P(...a),B=P(...b);g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke();});
+    // แผ่นค่าเฉลี่ย/มัธยฐาน (เลื่อนนุ่มนวล)
+    const pls=(m.pl||[]).map(p=>{let c=this.cur[p.k];if(c===undefined)c=p.x;c+=(p.x-c)*.2;if(Math.abs(p.x-c)>.002)busy=true;else c=p.x;this.cur[p.k]=c;return{...p,x:c};});
+    const ops=[];
+    pls.forEach(p=>ops.push([P(p.x,p.top/2,0)[2],()=>{
+      g.beginPath();[[p.x,0,-p.zs],[p.x,0,p.zs],[p.x,p.top,p.zs],[p.x,p.top,-p.zs]].forEach((v,i)=>{const q=P(...v);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]);});
+      g.closePath();g.fillStyle=rgb(p.c,1,.2);g.fill();g.strokeStyle=rgb(p.c,.9);g.lineWidth=2;g.stroke();}]));
+    const E=u=>1-Math.pow(1-u,3);
+    m.it.forEach(it=>{
+      const u=Math.min(1,(el-it.d)/450);if(u<=0)return;
+      const p=[it.p[0],it.p[1]+(1-E(u))*7,it.p[2]],q=P(...p);
+      if(it.t==='s')ops.push([q[2],()=>{
+        const r=it.r*q[3]*sc,x=q[0],y=q[1];
+        if(m.fast)g.fillStyle=rgb(it.c);
+        else{const gr=g.createRadialGradient(x-r*.35,y-r*.35,r*.08,x,y,r);gr.addColorStop(0,rgb(it.c,1.6));gr.addColorStop(.55,rgb(it.c));gr.addColorStop(1,rgb(it.c,.5));g.fillStyle=gr;}
+        g.beginPath();g.arc(x,y,r,0,7);g.fill();}]);
+      else ops.push([q[2],()=>{
+        const[hx,hy,hz]=it.s;
+        FACES.forEach(([n,vs])=>{
+          const nn=rot(...n);if(nn[2]<=.001)return;
+          const pp=vs.map(v=>P(p[0]+v[0]*hx,p[1]+v[1]*hy,p[2]+v[2]*hz));
+          g.beginPath();pp.forEach((v,i)=>i?g.lineTo(v[0],v[1]):g.moveTo(v[0],v[1]));g.closePath();
+          g.fillStyle=rgb(it.c,.6+.55*Math.max(0,-.35*nn[0]+.6*nn[1]+.7*nn[2]));g.fill();
+          g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=1;g.stroke();
+          if(it.x!=null&&n[2]!==0){
+            const T=pp[0],R=pp[1],B=pp[3],L=String(it.x).length;
+            g.save();g.transform((R[0]-T[0])/100,(R[1]-T[1])/100,(B[0]-T[0])/100,(B[1]-T[1])/100,T[0],T[1]);
+            g.fillStyle='#fff';g.font=`bold ${L>3?30:L>2?42:L>1?56:66}px Sarabun,sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(it.x,50,54);g.restore();}
+        });}]);
+    });
+    ops.sort((a,b)=>a[0]-b[0]).forEach(o=>o[1]());
+    g.textAlign='center';g.textBaseline='alphabetic';
+    [...m.tx,...pls.map(p=>({p:[p.x,p.ty,0],s:p.lb,c:rgb(p.c,.8),z:13}))].forEach(t=>{
+      const q=P(...t.p);g.fillStyle=t.c||'#44546a';g.font=`600 ${t.z||12}px Sarabun,sans-serif`;g.fillText(t.s,q[0],q[1]);});
+    if(busy)this.go();
+  }
+}
+
+const niceStep=r=>{const t=r/8,p=Math.pow(10,Math.floor(Math.log10(t))),f=t/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;};
+function dotModel(c){
+  const hi=c.s[c.n-1],st=niceStep(Math.max(hi,1)),xm=Math.max(st,Math.ceil((hi+st*.3)/st)*st),sx=20/xm;
+  const r=Math.min(.45,Math.max(.14,.5*sx)),zs=Math.max(1.8,r*3.6),dly=Math.min(60,1500/c.n);
+  const cnt=new Map(),it=[];let top=0;
+  c.s.forEach((v,k)=>{const q=cnt.get(v)||0;cnt.set(v,q+1);const y=r+Math.floor(q/3)*r*1.8;top=Math.max(top,y+r);
+    it.push({t:'s',p:[v*sx,y,((q%3)-1)*r*2.1],r,c:c.ms.has(v)?PUR:BLU,d:k*dly});});
+  const ln=[[[0,0,0],[20,0,0]]],tx=[];
+  for(let t=0;t<=xm+1e-9;t+=st){const x=t*sx;ln.push([[x,0,-zs],[x,0,zs]]);tx.push({p:[x,-.7,zs+.3],s:fmt(t)});}
+  const ty=top+1.5,fq=[[[[-.4,0,-zs],[20.4,0,-zs],[20.4,0,zs],[-.4,0,zs]],'rgba(120,150,200,.14)']];
+  // เส้นพิสัย (ต่ำสุด–สูงสุด)
+  const x0=c.s[0]*sx,x1=c.s[c.n-1]*sx,zr=zs+.8;
+  ln.push([[x0,0,zr],[x1,0,zr]],[[x0,-.35,zr],[x0,.35,zr]],[[x1,-.35,zr],[x1,.35,zr]]);
+  tx.push({p:[(x0+x1)/2,-2.4,zr],s:'พิสัย = '+fmt(c.s[c.n-1])+' − '+fmt(c.s[0])+' = '+fmt(c.rng),c:'#0b7285',z:12});
+  return{it,ln,tx,fq,
+    pl:[{k:'mean',x:c.mean*sx,c:ORG,top:ty,zs,ty:ty+.3,lb:'ค่าเฉลี่ย '+fmt(c.mean)},{k:'med',x:c.med*sx,c:GRN,top:ty,zs,ty:ty+1.1,lb:'มัธยฐาน '+fmt(c.med)}],
+    c:[10,(ty-2.4)/2,0],hw:11,hh:Math.max((ty+2.4)/2+1.2,4),dur:c.n*dly+450,fast:c.n>700};
+}
+function stemModel(c){
+  const g={};c.s.forEach(v=>{const k=Math.floor(v/10);(g[k]=g[k]||[]).push(v);});
+  const lo=Math.floor(c.s[0]/10),hi=Math.floor(c.s[c.n-1]/10);
+  const sl=hi-lo<=60?Array.from({length:hi-lo+1},(_,i)=>lo+i):Object.keys(g).map(Number),rows=[];
+  sl.forEach(k=>{const a=g[k]||[];if(!a.length)rows.push({s:k,l:[],f:1});for(let i=0;i<a.length;i+=20)rows.push({s:k,l:a.slice(i,i+20),f:i===0});});
+  const it=[],dly=Math.min(60,1500/c.n);let k=0,mw=1;
+  rows.forEach((r,ri)=>{const y=-ri*1.25;mw=Math.max(mw,r.l.length);
+    if(r.f)it.push({t:'b',p:[0,y,0],s:[.75,.5,.5],c:NAVY,x:r.s,d:ri*30});
+    r.l.forEach((v,j)=>it.push({t:'b',p:[2+j*1.15,y,0],s:[.5,.5,.5],c:c.ms.has(v)?PUR:BLU,x:v%10,d:(k++)*dly}));});
+  const H=rows.length*1.25,W=2+mw*1.15,cy=-(rows.length-1)*.625;
+  it.push({t:'b',p:[1.05,cy,0],s:[.07,H/2,.3],c:GRY,d:0});
+  return{it,ln:[],tx:[],fq:[[[[-1.3,.8,-.7],[W+.3,.8,-.7],[W+.3,-H+.45,-.7],[-1.3,-H+.45,-.7]],'rgba(120,150,200,.14)']],
+    c:[W/2-.5,cy,0],hw:W/2+1.2,hh:H/2+1,dur:k*dly+450};
+}
+const sd=new Scene($('dp'),-.55,.3),ss=new Scene($('st'),-.3,.12),SC=new Map([[$('dp'),sd],[$('st'),ss]]);
+const TOOLS='<div class="row tools"><button class="sec" data-a="auto">🔄 หมุนอัตโนมัติ</button><button class="sec" data-a="front">หน้าตรง</button><button class="sec" data-a="reset">รีเซ็ตมุมมอง</button><button class="sec" data-a="in">＋ ซูมเข้า</button><button class="sec" data-a="out">－ ซูมออก</button><button class="sec" data-a="play">▶ เล่นแอนิเมชันใหม่</button></div>';
+document.querySelectorAll('canvas.c3').forEach(cv=>cv.insertAdjacentHTML('beforebegin',TOOLS));
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.tools button');if(!b)return;
+  const S=SC.get(b.parentNode.nextElementSibling),a=b.dataset.a;
+  if(a==='auto'){S.auto=!S.auto;b.textContent=S.auto?'⏸ หยุดหมุน':'🔄 หมุนอัตโนมัติ';}
+  else if(a==='front'){S.yaw=0;S.pit=0;}
+  else if(a==='reset'){S.yaw=S.y0;S.pit=S.p0;S.zm=1;}
+  else if(a==='in')S.zm=Math.min(8,S.zm*1.25);
+  else if(a==='out')S.zm=Math.max(.2,S.zm/1.25);
+  else if(a==='play')S.t0=performance.now();
+  S.go();
+});
+
+/* ---------- ข้อมูลและแถบเลื่อน ---------- */
+const RM=()=>Math.max(1,Math.round(+$('rmax').value)||60);
+const rnd=()=>Math.floor(Math.random()*(RM()+1));
+function buildSliders(){
+  const n=Math.max(1,Math.floor(+$('nn').value)||1);
+  $('nn').value=n;const sl=$('n');sl.max=Math.max(30,n);sl.value=n;
+  while(vals.length<n)vals.push(rnd());vals.length=n;
+  const R=vals.reduce((a,b)=>Math.max(a,b),RM());
+  $('vals').innerHTML=vals.map((v,i)=>`<div><span>x<sub>${i+1}</sub></span><input type="number" class="nb" min="0" data-i="${i}" value="${v}"><input type="range" class="rg" min="0" max="${R}" data-i="${i}" value="${v}"></div>`).join('');
+  update(true);
+}
+$('vals').addEventListener('input',e=>{
+  const t=e.target,i=+t.dataset.i;if(t.value==='')return;
+  const v=Math.max(0,Math.round(+t.value)||0);vals[i]=v;
+  const rg=t.parentNode.querySelector('.rg'),nb=t.parentNode.querySelector('.nb');
+  if(v>+rg.max)rg.max=v;if(t===rg)nb.value=v;else rg.value=v;
+  update(false);
+});
+$('nn').onchange=buildSliders;
+$('n').oninput=e=>{$('nn').value=e.target.value;buildSliders();};
+$('rmax').onchange=buildSliders;
+$('rnd').onclick=()=>{vals=vals.map(rnd);buildSliders();};
+$('srt').onclick=()=>{vals.sort((a,b)=>a-b);buildSliders();};
+$('usep').onclick=()=>{
+  const a=$('paste').value.split(/[\s,;]+/).filter(Boolean).map(Number).filter(Number.isFinite).map(x=>Math.max(0,Math.round(x)));
+  if(!a.length){alert('ไม่พบตัวเลขในช่องข้อมูล');return;}
+  vals=a;$('nn').value=a.length;buildSliders();
+};
+
+function update(anim){
+  const c=calc();
+  $('mean').textContent=fmt(c.mean);$('med').textContent=fmt(c.med);
+  $('mode').textContent=c.modes.length?lim(c.modes):'ไม่มี';
+  $('rng').textContent=fmt(c.rng);$('rngsub').textContent=`สูงสุด ${fmt(c.s[c.n-1])} − ต่ำสุด ${fmt(c.s[0])}`;
+  const mid=c.n%2?`ข้อมูลมี ${c.n} ค่า (คี่) → มัธยฐานคือค่าตรงกลางลำดับที่ ${(c.n+1)/2} = <b>${fmt(c.med)}</b>`
+    :`ข้อมูลมี ${c.n} ค่า (คู่) → มัธยฐานคือค่าเฉลี่ยของลำดับที่ ${c.n/2} และ ${c.n/2+1} = (${c.s[c.n/2-1]}+${c.s[c.n/2]}) ÷ 2 = <b>${fmt(c.med)}</b>`;
+  const lst=c.n>60?c.s.slice(0,30).join(', ')+' … '+c.s.slice(-10).join(', ')+` (รวม ${c.n} ค่า)`:c.s.join(', ');
+  $('steps').innerHTML=`<b>ข้อมูลที่เรียงแล้ว:</b> ${lst}<br>
+  <b>ค่าเฉลี่ย</b> = ผลรวม ÷ จำนวน = ${c.sum} ÷ ${c.n} = <b>${fmt(c.mean)}</b><br>
+  <b>มัธยฐาน:</b> ${mid}<br>
+  <b>ฐานนิยม:</b> ${c.modes.length?`ค่าที่ซ้ำมากที่สุด (${c.mx} ครั้ง) = <b>${lim(c.modes)}</b>`:'ทุกค่าปรากฏครั้งเดียว จึง<b>ไม่มีฐานนิยม</b>'}<br>
+  <b>พิสัย</b> = ค่าสูงสุด − ค่าต่ำสุด = ${fmt(c.s[c.n-1])} − ${fmt(c.s[0])} = <b>${fmt(c.rng)}</b>`;
+  const ex=c.s[0];$('key').textContent=`หมายเหตุ: ${Math.floor(ex/10)} | ${ex%10} แทน ${ex}`;
+  sd.set(dotModel(c),anim);ss.set(stemModel(c),anim);
+}
+
+/* ---------- Quiz (editable) ---------- */
+const DEF=[
+ {q:'ข้อมูลชุดหนึ่งคือ 12, 15, 15, 18, 20 ค่าเฉลี่ยเท่ากับเท่าใด',o:['15','16','17','18'],a:1,e:'ผลรวม = 12+15+15+18+20 = 80 จำนวนข้อมูล 5 ค่า ค่าเฉลี่ย = 80 ÷ 5 = 16'},
+ {q:'ข้อมูลชุดหนึ่งคือ 4, 9, 2, 7, 8, 6 มัธยฐานเท่ากับเท่าใด',o:['6','6.5','7','8'],a:1,e:'เรียงข้อมูล: 2, 4, 6, 7, 8, 9 (มี 6 ค่า เป็นจำนวนคู่) มัธยฐาน = (6+7) ÷ 2 = 6.5'},
+ {q:'จากแผนภาพต้นไม้ ฐานนิยมของข้อมูลคือเท่าใด\n1 | 2 5 5 8\n2 | 0 3 5 5 5\n3 | 1\n(1 | 2 แทน 12)',o:['15','23','25','31'],a:2,e:'ต้น 2 ใบ 5 ปรากฏ 3 ครั้ง คือ 25 ซ้ำมากที่สุด ฐานนิยมจึงเป็น 25'}
+];
+const clone=o=>JSON.parse(JSON.stringify(o));
+const L='กขคง';
+const esc=t=>String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const norm=a=>a.map(x=>({q:String(x.q||''),o:[0,1,2,3].map(j=>String((x.o||[])[j]??'')),a:Math.min(3,Math.max(0,+x.a||0)),e:String(x.e||'')}));
+let Q;
+try{Q=JSON.parse(localStorage.getItem('quizM2'));}catch(e){}
+Q=Array.isArray(Q)&&Q.length?norm(Q):clone(DEF);
+const save=()=>{try{localStorage.setItem('quizM2',JSON.stringify(Q));}catch(e){}};
+let editing=false;
+
+function render(){
+  $('quizView').style.display=editing?'none':'';
+  $('quizEdit').style.display=editing?'':'none';
+  $('edt').style.display=editing?'none':'';
+  $('qn').textContent=Q.length;$('score').textContent='';
+  if(editing){renderEdit();return;}
+  $('quiz').innerHTML=Q.map((x,i)=>`<div class="q"><b>ข้อ ${i+1}.</b> <span class="qt">${esc(x.q)}</span>${x.o.map((t,j)=>t.trim()?`<label><input type="radio" name="q${i}" value="${j}"> ${L[j]}. ${esc(t)}</label>`:'').join('')}<div class="fb" id="fb${i}"></div></div>`).join('');
+}
+function renderEdit(){
+  $('quizEdit').innerHTML=Q.map((x,i)=>`<div class="eq" data-i="${i}">
+  <div class="row sp"><b>ข้อ ${i+1}</b><button class="sec" data-act="del" data-i="${i}">🗑 ลบข้อนี้</button></div>
+  <label class="h">โจทย์ (ขึ้นบรรทัดใหม่ได้ เช่น ใช้เขียนแผนภาพต้นไม้)</label>
+  <textarea class="f" data-k="q" rows="3">${esc(x.q)}</textarea>
+  <label class="h">ตัวเลือก (กดวงกลมหน้าตัวเลือกที่เป็นคำตอบที่ถูก)</label>
+  ${x.o.map((t,j)=>`<div class="opt"><input type="radio" name="ans${i}" data-k="a" value="${j}" ${x.a===j?'checked':''}><span>${L[j]}.</span><input type="text" class="f" data-k="o" data-j="${j}" value="${esc(t)}"></div>`).join('')}
+  <label class="h">เฉลยและคำอธิบายวิธีคิด</label>
+  <textarea class="f" data-k="e" rows="2">${esc(x.e)}</textarea></div>`).join('')+
+  `<div class="row"><button class="sec" data-act="add">➕ เพิ่มข้อสอบ</button><button class="sec" data-act="exp">⬇️ ส่งออกไฟล์ (.json)</button><button class="sec" data-act="imp">⬆️ นำเข้าไฟล์</button><button class="sec" data-act="rst">↺ คืนค่าเริ่มต้น</button><button data-act="done">✔ เสร็จสิ้น</button></div>`;
+}
+$('quizEdit').addEventListener('input',e=>{
+  const t=e.target,box=t.closest('.eq');if(!box||!t.dataset.k)return;
+  const x=Q[+box.dataset.i],k=t.dataset.k;
+  if(k==='o')x.o[+t.dataset.j]=t.value;else if(k==='a')x.a=+t.value;else x[k]=t.value;
+  save();
+});
+$('quizEdit').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const act=b.dataset.act;
+  if(act==='del'){if(Q.length<=1){alert('ต้องมีข้อสอบอย่างน้อย 1 ข้อ');return;}Q.splice(+b.dataset.i,1);save();renderEdit();}
+  else if(act==='add'){Q.push({q:'',o:['','','',''],a:0,e:''});save();renderEdit();window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}
+  else if(act==='rst'){if(confirm('คืนค่าเป็นข้อสอบเริ่มต้น 3 ข้อ? ข้อสอบที่แก้ไว้จะหายไป')){Q=clone(DEF);save();renderEdit();}}
+  else if(act==='exp'){
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(Q,null,2)],{type:'application/json'}));
+    a.download='quiz_m2.json';a.click();URL.revokeObjectURL(a.href);}
+  else if(act==='imp'){$('imp').click();}
+  else if(act==='done'){
+    for(let i=0;i<Q.length;i++){const x=Q[i],n=x.o.filter(t=>t.trim()).length;
+      if(!x.q.trim()||n<2||!x.o[x.a].trim()){alert(`ข้อ ${i+1}: ต้องมีโจทย์ มีตัวเลือกอย่างน้อย 2 ข้อ และตัวเลือกที่เป็นเฉลยต้องไม่ว่าง`);return;}}
+    editing=false;render();}
+});
+$('imp').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d)||!d.length)throw 0;Q=norm(d);save();renderEdit();}
+    catch(_){alert('ไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ที่ส่งออกจากสื่อนี้');}};
+  r.readAsText(f);e.target.value='';
+};
+$('edt').onclick=()=>{editing=true;render();};
+$('chk').onclick=()=>{
+  let sc=0;
+  Q.forEach((x,i)=>{
+    const r=document.querySelector(`input[name=q${i}]:checked`),fb=$('fb'+i);
+    if(!r){fb.className='fb no';fb.textContent='ยังไม่ได้เลือกคำตอบ';return;}
+    if(+r.value===x.a){sc++;fb.className='fb ok';fb.innerHTML='✅ ถูกต้อง! '+esc(x.e);}
+    else{fb.className='fb no';fb.innerHTML='❌ ยังไม่ถูก ลองคิดใหม่อีกครั้ง หรือกด "ดูเฉลยทั้งหมด"';}
+  });
+  $('score').textContent=`ได้ ${sc} / ${Q.length} คะแนน`+(sc===Q.length?' 🎉 เก่งมาก!':'');
+};
+$('rev').onclick=()=>{Q.forEach((x,i)=>{const fb=$('fb'+i);fb.className='fb ans';fb.innerHTML=`<b>เฉลย: ${L[x.a]}. ${esc(x.o[x.a])}</b><br>${esc(x.e)}`;});};
+
+render();
+buildSliders();
+</script>
+</body>
+</html>
